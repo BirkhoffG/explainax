@@ -30,4 +30,12 @@ d = { 'settings': { 'branch': 'main',
                                             'jax_interpret.linear_model.Ridge.__init__': ( 'api/linear_model.html#ridge.__init__',
                                                                                            'jax_interpret/linear_model.py'),
                                             'jax_interpret.linear_model.Ridge.fit': ( 'api/linear_model.html#ridge.fit',
-                                                                                      'jax_interpret/linear_model.py')}}}
+                                                                                      'jax_interpret/linear_model.py'),
+                                            'jax_interpret.linear_model._init_train_fn': ( 'api/linear_model.html#_init_train_fn',
+                                                                                           'jax_interpret/linear_model.py'),
+                                            'jax_interpret.linear_model.calculate_loss': ( 'api/linear_model.html#calculate_loss',
+                                                                                           'jax_interpret/linear_model.py'),
+                                            'jax_interpret.linear_model.l2_loss': ( 'api/linear_model.html#l2_loss',
+                                                                                    'jax_interpret/linear_model.py'),
+                                            'jax_interpret.linear_model.sgd_train_linear_model': ( 'api/linear_model.html#sgd_train_linear_model',
+                                                                                                   'jax_interpret/linear_model.py')}}}

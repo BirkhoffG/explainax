@@ -5,7 +5,86 @@ from __future__ import annotations
 from .imports import *
 
 # %% auto 0
-__all__ = ['BaseEstimator', 'Lasso', 'Ridge']
+__all__ = ['l2_loss', 'calculate_loss', 'sgd_train_linear_model', 'BaseEstimator', 'Lasso', 'Ridge']
+
+# %% ../nbs/api/linear_model.ipynb 4
+def l2_loss(x1, x2, weights=None):
+    if weights is None:
+        return jnp.mean(jnp.square(x1 - x2)) / 2.0
+    else:
+        return jnp.sum((weights / jnp.linalg.norm(weights, ord=1)) * jnp.square(x1 - x2)) / 2.0
+
+# %% ../nbs/api/linear_model.ipynb 5
+def _init_train_fn(
+    X: jnp.ndarray, # Input data
+    y: jnp.ndarray, # Target data
+    fit_bias: bool = True, # Fit bias term
+    seed: int = 42, # Random seed
+):  
+    rng = jax.random.PRNGKey(seed)
+    n_samples, n_features = X.shape
+    rng, w_key, b_key = jax.random.split(rng, 3)
+    w = jax.random.normal(w_key, (n_features,))
+    if fit_bias:
+        b = jax.random.normal(b_key, (1,))
+    else:
+        b = jnp.zeros(1)
+    params = dict(w=w, b=b)
+    return params
+
+def calculate_loss(
+    params: Dict[str, jnp.ndarray],
+    batch: Tuple[jnp.ndarray, jnp.ndarray],
+    loss_fn: Callable,
+    weights: jnp.ndarray = None,
+    reg_term: int = None,
+    alpha: float = 1.0
+):
+    """Calculate the loss for a batch of data."""
+    w, b = params["w"], params["b"]
+    X, y = batch
+    y_pred = jnp.dot(X, w) + b
+    loss = loss_fn(y, y_pred, weights)
+    if reg_term is not None:
+        reg = jnp.linalg.norm(w, ord=reg_term)
+        loss += jnp.mean(reg) * alpha
+    return loss
+
+def sgd_train_linear_model(
+    X: jnp.ndarray, # Input data. Shape: `(N, k)`
+    y: jnp.ndarray, # Target data. Shape: `(N,)` or `(N, 1)`
+    weights: jnp.ndarray = None, # Initial weights. Shape: `(k,)`
+    lr: float = 0.01, # Learning rate
+    n_epochs: int = 100, # Number of epochs
+    batch_size: int = 32, # Batch size
+    seed: int = 42, # Random seed
+    loss_fn: Callable = l2_loss, # Loss function
+    reg_term: int = None, # Regularization term
+    alpha: float = 1.0, # Regularization strength
+    fit_bias: bool = True, # Fit bias term
+) -> Tuple[np.ndarray, np.ndarray]: # The trained weights and bias
+    """Train a linear model using SGD."""
+
+    @jax.jit
+    def sgd_step(params, opt_state, batch):
+        """Perform a single SGD step."""
+        grads = jax.grad(calculate_loss)(params, batch, loss_fn, weights, reg_term, alpha)
+        updates, opt_state = opt.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state
+
+    # TODO: Check shapes of X and y
+    n_samples = X.shape[0]
+    params = _init_train_fn(X, y, fit_bias, seed)
+    opt = optax.sgd(lr)
+    opt_state = opt.init(params)
+    for epoch in range(n_epochs):
+        for i in range(0, n_samples, batch_size):
+            X_batch = X[i : i + batch_size]
+            y_batch = y[i : i + batch_size]
+            params, opt_state = sgd_step(params, opt_state, (X_batch, y_batch))
+    return params["w"], params["b"]
+
 
 # %% ../nbs/api/linear_model.ipynb 6
 class BaseEstimator:
