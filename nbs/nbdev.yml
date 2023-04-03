@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "jax-interpret"
+  site-url: "https://birkhoffg.github.io/jax-interpret"
+  description: ""
+  repo-branch: main
+  repo-url: "https://github.com/birkhoffg/jax-interpret"
