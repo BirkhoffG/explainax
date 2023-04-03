@@ -5,7 +5,7 @@ from __future__ import annotations
 from .imports import *
 
 # %% auto 0
-__all__ = ['l2_loss', 'calculate_loss', 'sgd_train_linear_model', 'BaseEstimator', 'Lasso', 'Ridge']
+__all__ = ['l2_loss', 'calculate_loss', 'sgd_train_linear_model', 'BaseEstimator', 'LinearModel', 'Lasso', 'Ridge']
 
 # %% ../nbs/api/linear_model.ipynb 4
 def l2_loss(x1, x2, weights=None):
@@ -93,6 +93,28 @@ class BaseEstimator:
 
     def fit(self, X, y):
         ...
+
+# %% ../nbs/api/linear_model.ipynb 7
+class LinearModel(BaseEstimator):
+    def __init__(
+        self,
+        bias: bool = True,
+        trainer_fn: Callable=None,
+        **kwargs,
+    ):
+        self.fit_bias = bias
+        self.trainer_fn = sgd_train_linear_model if trainer_fn is None else trainer_fn
+    
+    def fit(
+        self, 
+        X: jnp.ndarray, 
+        y: jnp.ndarray,
+        weights: jnp.ndarray = None,
+        **kwargs,
+    ) -> LinearModel:
+        self.coef_, self.bias_ = self.trainer_fn(
+            X, y, weights, fit_bias=self.fit_bias, **kwargs)
+        return self
 
 # %% ../nbs/api/linear_model.ipynb 8
 class Lasso(LinearModel):
