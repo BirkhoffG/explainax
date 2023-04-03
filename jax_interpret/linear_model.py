@@ -34,15 +34,14 @@ def _init_train_fn(
 
 def calculate_loss(
     params: Dict[str, jnp.ndarray],
-    batch: Tuple[jnp.ndarray, jnp.ndarray],
+    batch: Tuple[Array, Array, Array],
     loss_fn: Callable,
-    weights: jnp.ndarray = None,
     reg_term: int = None,
     alpha: float = 1.0
 ):
     """Calculate the loss for a batch of data."""
     w, b = params["w"], params["b"]
-    X, y = batch
+    X, y, weights = batch
     y_pred = jnp.dot(X, w) + b
     loss = loss_fn(y, y_pred, weights)
     if reg_term is not None:
@@ -53,7 +52,7 @@ def calculate_loss(
 def sgd_train_linear_model(
     X: jnp.ndarray, # Input data. Shape: `(N, k)`
     y: jnp.ndarray, # Target data. Shape: `(N,)` or `(N, 1)`
-    weights: jnp.ndarray = None, # Initial weights. Shape: `(k,)`
+    weights: jnp.ndarray = None, # Initial weights. Shape: `(N,)`
     lr: float = 0.01, # Learning rate
     n_epochs: int = 100, # Number of epochs
     batch_size: int = 32, # Batch size
@@ -68,7 +67,7 @@ def sgd_train_linear_model(
     @jax.jit
     def sgd_step(params, opt_state, batch):
         """Perform a single SGD step."""
-        grads = jax.grad(calculate_loss)(params, batch, loss_fn, weights, reg_term, alpha)
+        grads = jax.grad(calculate_loss)(params, batch, loss_fn, reg_term, alpha)
         updates, opt_state = opt.update(grads, opt_state)
         params = optax.apply_updates(params, updates)
         return params, opt_state
@@ -82,7 +81,8 @@ def sgd_train_linear_model(
         for i in range(0, n_samples, batch_size):
             X_batch = X[i : i + batch_size]
             y_batch = y[i : i + batch_size]
-            params, opt_state = sgd_step(params, opt_state, (X_batch, y_batch))
+            w_batch = weights[i : i + batch_size] if weights is not None else None
+            params, opt_state = sgd_step(params, opt_state, (X_batch, y_batch, w_batch))
     return params["w"], params["b"]
 
 
@@ -98,11 +98,11 @@ class BaseEstimator:
 class LinearModel(BaseEstimator):
     def __init__(
         self,
-        bias: bool = True,
+        intercept: bool = True,
         trainer_fn: Callable=None,
         **kwargs,
     ):
-        self.fit_bias = bias
+        self.fit_bias = intercept
         self.trainer_fn = sgd_train_linear_model if trainer_fn is None else trainer_fn
     
     def fit(
@@ -112,7 +112,7 @@ class LinearModel(BaseEstimator):
         weights: jnp.ndarray = None,
         **kwargs,
     ) -> LinearModel:
-        self.coef_, self.bias_ = self.trainer_fn(
+        self.coef_, self.intercept_ = self.trainer_fn(
             X, y, weights, fit_bias=self.fit_bias, **kwargs)
         return self
 
