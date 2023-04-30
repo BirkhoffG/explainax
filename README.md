@@ -8,9 +8,12 @@ status](https://github.com/BirkhoffG/explainax/actions/workflows/test.yaml/badge
 ![pypi](https://img.shields.io/pypi/v/explainax.svg) ![GitHub
 License](https://img.shields.io/github/license/BirkhoffG/explainax.svg)
 
+[**Installation**](#installation) \|
+[**Documentation**](https://birkhoffg.github.io/explainax/)
+
 `explainax` is a JAX library for model explanation and interpretation.
 
-## Quick install
+## Installation
 
 Simply install via `pypi`:
 
