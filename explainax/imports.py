@@ -4,7 +4,7 @@ from typing import Union,Optional,Dict,List,Tuple,Sequence,Mapping,Callable,Iter
 import io,operator,sys,os,re,mimetypes,csv,itertools,json,shutil,glob,pickle,tarfile,collections
 import hashlib,itertools,types,inspect,functools,time,math,bz2,typing,numbers,string
 import multiprocessing,threading,urllib,tempfile,concurrent.futures,warnings,zipfile
-import numpy as np,pandas as pd,scipy
+import numpy as np
 
 # jax related
 import jax
@@ -12,12 +12,10 @@ import jax.numpy as jnp, jax.random as jrand, jax.scipy as jsp
 from jax import jit, vmap, device_put, lax, grad, value_and_grad, Array
 
 # nn related
-import haiku as hk
 import optax
 import chex
 
 # misc
-from pydantic import BaseModel as BaseConfig, validator, ValidationError, Field
 from pathlib import Path
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
