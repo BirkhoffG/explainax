@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.553">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>explainax - LIME</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="explainax - LIME">
+<meta property="og:description" content="JAX-based Model Explanation and Interpretation Library">
+<meta property="og:site_name" content="explainax">
+<meta name="twitter:title" content="explainax - LIME">
+<meta name="twitter:description" content="JAX-based Model Explanation and Interpretation Library">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">explainax</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/attr.base.html">API</a></li><li class="breadcrumb-item"><a href="../api/attr.lime.html">LIME</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Explainax: An Explainable AI Library for JAX</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/attr.base.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Base API</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/attr.lime.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">LIME</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/linear_model.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Linear Model</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#pairwise_distances" id="toc-pairwise_distances" class="nav-link active" data-scroll-target="#pairwise_distances">pairwise_distances</a></li>
+  <li><a href="#gaussian_perturb_func" id="toc-gaussian_perturb_func" class="nav-link" data-scroll-target="#gaussian_perturb_func">gaussian_perturb_func</a></li>
+  <li><a href="#bernoulli_perturb_func" id="toc-bernoulli_perturb_func" class="nav-link" data-scroll-target="#bernoulli_perturb_func">bernoulli_perturb_func</a></li>
+  <li><a href="#exp_kernel_func" id="toc-exp_kernel_func" class="nav-link" data-scroll-target="#exp_kernel_func">exp_kernel_func</a></li>
+  <li><a href="#limebase" id="toc-limebase" class="nav-link" data-scroll-target="#limebase">LimeBase</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/birkhoffg/explainax/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/attr.base.html">API</a></li><li class="breadcrumb-item"><a href="../api/attr.lime.html">LIME</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">LIME</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/birkhoffg/explainax/blob/main/explainax/attr/lime.py#L13" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pairwise_distances" class="level3">
+<h3 class="anchored" data-anchor-id="pairwise_distances">pairwise_distances</h3>
+<blockquote class="blockquote">
+<pre><code> pairwise_distances (x:jax.Array, y:jax.Array, metric:str='euclidean')</code></pre>
+</blockquote>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>x</td>
+<td>Array</td>
+<td></td>
+<td>[n, k]</td>
+</tr>
+<tr class="even">
+<td>y</td>
+<td>Array</td>
+<td></td>
+<td>[m, k]</td>
+</tr>
+<tr class="odd">
+<td>metric</td>
+<td>str</td>
+<td>euclidean</td>
+<td>Supports “euclidean” and “cosine”</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Array</strong></td>
+<td></td>
+<td><strong>[n, m]</strong></td>
+</tr>
+</tbody>
+</table>
+<p>This function is similar to <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise_distances.html">sklearn.metrics.pairwise_distances</a>.</p>
+<div id="cell-6" class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> pairwise_distances <span class="im">as</span> sk_pairwise_distances</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><a href="https://birkhoffg.github.io/explainax/api/attr.lime.html#pairwise_distances"><code>pairwise_distances</code></a> is faster than sklearn’s implementation.</p>
+<div id="cell-8" class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.normal(size<span class="op">=</span>(<span class="dv">1000</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>))</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> np.random.normal(size<span class="op">=</span>(<span class="dv">1000</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> benchmark_pairwise_distances(metric):</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"[</span><span class="sc">{</span>metric<span class="sc">}</span><span class="ss">] Sklearn pairwise_distances:"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"[</span><span class="sc">{</span>metric<span class="sc">}</span><span class="ss">] JAX pairwise_distances:"</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> jnp.allclose(</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        sk_pairwise_distances(X, Y, metric<span class="op">=</span>metric),</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        pairwise_distances(X, Y, metric<span class="op">=</span>metric)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>benchmark_pairwise_distances(<span class="st">"euclidean"</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>benchmark_pairwise_distances(<span class="st">"cosine"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[euclidean] Sklearn pairwise_distances:
+28.6 ms ± 6.82 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+[euclidean] JAX pairwise_distances:
+6.27 ms ± 3.02 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+[cosine] Sklearn pairwise_distances:
+29.2 ms ± 6.07 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+[cosine] JAX pairwise_distances:
+6.4 ms ± 2.82 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/birkhoffg/explainax/blob/main/explainax/attr/lime.py#L44" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="gaussian_perturb_func" class="level3">
+<h3 class="anchored" data-anchor-id="gaussian_perturb_func">gaussian_perturb_func</h3>
+<blockquote class="blockquote">
+<pre><code> gaussian_perturb_func (x:jax.Array, prng_key:&lt;function PRNGKey&gt;,
+                        **kwargs)</code></pre>
+</blockquote>
+<p>Gaussian perturbation function for LIME</p>
+<hr>
+<p><a href="https://github.com/birkhoffg/explainax/blob/main/explainax/attr/lime.py#L39" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="bernoulli_perturb_func" class="level3">
+<h3 class="anchored" data-anchor-id="bernoulli_perturb_func">bernoulli_perturb_func</h3>
+<blockquote class="blockquote">
+<pre><code> bernoulli_perturb_func (x:jax.Array, prng_key:&lt;function PRNGKey&gt;,
+                         **kwargs)</code></pre>
+</blockquote>
+<p>Bernoulli perturbation function for LIME</p>
+<div id="cell-11" class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.normal(size<span class="op">=</span>(<span class="dv">1</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>b_perturbed <span class="op">=</span> _perturb_data(X, <span class="dv">100</span>, bernoulli_perturb_func, jrand.PRNGKey(<span class="dv">42</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>g_perturbed <span class="op">=</span> _perturb_data(X, <span class="dv">100</span>, gaussian_perturb_func, jrand.PRNGKey(<span class="dv">42</span>))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> b_perturbed.shape <span class="op">==</span> (<span class="dv">101</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> g_perturbed.shape <span class="op">==</span> (<span class="dv">101</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/birkhoffg/explainax/blob/main/explainax/attr/lime.py#L64" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="exp_kernel_func" class="level3">
+<h3 class="anchored" data-anchor-id="exp_kernel_func">exp_kernel_func</h3>
+<blockquote class="blockquote">
+<pre><code> exp_kernel_func (dists:jax.Array, kernel_width:float)</code></pre>
+</blockquote>
+<p>Exponential kernel function for LIME</p>
+<div id="cell-13" class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>distances <span class="op">=</span> pairwise_distances(g_perturbed, X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>The slowest run took 389.12 times longer than the fastest. This could mean that an intermediate result is being cached.
+273 µs ± 657 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/birkhoffg/explainax/blob/main/explainax/attr/lime.py#L103" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="limebase" class="level3">
+<h3 class="anchored" data-anchor-id="limebase">LimeBase</h3>
+<blockquote class="blockquote">
+<pre><code> LimeBase (func:Callable, additional_func_args:Dict=None,
+           model_regressor=None, kernal_func:Callable=None,
+           kernel_width:float=None, perturb_func:Callable=None,
+           input_paramter_name:str='x',
+           pairwise_distances_metric:str='euclidean')</code></pre>
+</blockquote>
+<p>Initialize self. See help(type(self)) for accurate signature.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>func</td>
+<td>typing.Callable</td>
+<td></td>
+<td>A black-box function to be explained</td>
+</tr>
+<tr class="even">
+<td>additional_func_args</td>
+<td>typing.Dict</td>
+<td>None</td>
+<td>Additional arguments for the black-box function</td>
+</tr>
+<tr class="odd">
+<td>model_regressor</td>
+<td>NoneType</td>
+<td>None</td>
+<td>Linear regressor to use in explanation</td>
+</tr>
+<tr class="even">
+<td>kernal_func</td>
+<td>typing.Callable</td>
+<td>None</td>
+<td>Kernel function for computing similarity</td>
+</tr>
+<tr class="odd">
+<td>kernel_width</td>
+<td>float</td>
+<td>None</td>
+<td>Kernel width for computing similarity. Defaults to (n_features * 0.75)</td>
+</tr>
+<tr class="even">
+<td>perturb_func</td>
+<td>typing.Callable</td>
+<td>None</td>
+<td>Perturbation function for generating perturbed instances</td>
+</tr>
+<tr class="odd">
+<td>input_paramter_name</td>
+<td>str</td>
+<td>x</td>
+<td>Name of the input parameter for the black-box function</td>
+</tr>
+<tr class="even">
+<td>pairwise_distances_metric</td>
+<td>str</td>
+<td>euclidean</td>
+<td>Metric for computing pairwise distances</td>
+</tr>
+</tbody>
+</table>
+<section id="tests" class="level4">
+<h4 class="anchored" data-anchor-id="tests">Tests</h4>
+<div id="cell-16" class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> make_regression</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> haiku <span class="im">as</span> hk</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-17" class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>xs, ys <span class="op">=</span> make_regression(n_samples<span class="op">=</span><span class="dv">500</span>, n_features<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-18" class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>linear_model <span class="op">=</span> LinearModel()</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>linear_model.fit(xs, ys)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>lime <span class="op">=</span> LimeBase(linear_model.predict, input_paramter_name<span class="op">=</span><span class="st">"X"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-19" class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># fit a simple haiku model</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(x):</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    mlp <span class="op">=</span> hk.Sequential([</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        hk.Linear(<span class="dv">10</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        jax.nn.relu,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        hk.Linear(<span class="dv">10</span>),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        jax.nn.relu,</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        hk.Linear(<span class="dv">1</span>),</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    ])</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> mlp(x)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> init(x):</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    net <span class="op">=</span> hk.without_apply_rng(hk.transform(model))</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    opt <span class="op">=</span> optax.sgd(<span class="fl">1e-1</span>)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> net.init(jrand.PRNGKey(<span class="dv">42</span>), x)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    opt_state <span class="op">=</span> opt.init(params)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> net, opt, params, opt_state</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> loss(params, net, x, y):</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> net.<span class="bu">apply</span>(params, x)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.mean((pred <span class="op">-</span> y) <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="at">@partial</span>(jax.jit, static_argnums<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">3</span>))</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> update(</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    params: hk.Params,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    opt_state: optax.OptState,</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    net: hk.Transformed,</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    opt: optax.GradientTransformation,</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    x: jnp.ndarray,</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    y: jnp.ndarray</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    grads <span class="op">=</span> jax.grad(loss)(params, net, x, y)</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>    updates, opt_state <span class="op">=</span> opt.update(grads, opt_state)</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> optax.apply_updates(params, updates)</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> params, opt_state</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train(</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    net: hk.Transformed,</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    opt: optax.GradientTransformation,</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    params: hk.Params,</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>    opt_state: optax.OptState,</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>    x: jnp.ndarray,</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>    y: jnp.ndarray,</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    n_epochs: <span class="bu">int</span> <span class="op">=</span> <span class="dv">100</span>,</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>    batch_size: <span class="bu">int</span> <span class="op">=</span> <span class="dv">32</span>,</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> x.shape[<span class="dv">0</span>]</span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n_epochs):</span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, n_samples, batch_size):</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>            x_batch <span class="op">=</span> x[i:i<span class="op">+</span>batch_size]</span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>            y_batch <span class="op">=</span> y[i:i<span class="op">+</span>batch_size]</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>            params, opt_state <span class="op">=</span> update(params, opt_state, net, opt, x_batch, y_batch)</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> params</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fit_a_model(</span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    X: Array,</span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    y: Array,</span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    net, opt, params, opt_state <span class="op">=</span> init(X)</span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> train(net, opt, params, opt_state, X, y)</span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> net, params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-20" class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>net, params <span class="op">=</span> fit_a_model(xs, ys)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/home/birk/mambaforge-pypy3/envs/nbdev2/lib/python3.7/site-packages/haiku/_src/base.py:515: UserWarning: Explicitly requested dtype float64 requested in zeros is not available, and will be truncated to dtype float32. To enable more dtypes, set the jax_enable_x64 configuration option or the JAX_ENABLE_X64 shell environment variable. See https://github.com/google/jax#current-gotchas for more.
+  param = init(shape, dtype)</code></pre>
+</div>
+</div>
+<div id="cell-21" class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>net.<span class="bu">apply</span>(params, xs[:<span class="dv">10</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>DeviceArray([[0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635],
+             [0.24004635]], dtype=float32)</code></pre>
+</div>
+</div>
+<div id="cell-22" class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>kernel_func <span class="op">=</span> partial(exp_kernel_func, kernel_width<span class="op">=</span><span class="dv">2</span> <span class="op">*</span> <span class="fl">0.75</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>_lime_attribute_single_instance(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    X[:<span class="dv">1</span>],</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="dv">1000</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    jrand.PRNGKey(<span class="dv">42</span>),</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    net.<span class="bu">apply</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    additional_func_args<span class="op">=</span>{<span class="st">"params"</span>: params},</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    input_paramter_name<span class="op">=</span><span class="st">"x"</span>,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    perturb_func<span class="op">=</span>gaussian_perturb_func,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    kernel_func<span class="op">=</span>kernel_func,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    model_regressor<span class="op">=</span>Ridge(alpha<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    pairwise_distances_metric<span class="op">=</span><span class="st">"euclidean"</span>,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(DeviceArray([-5.97378996e-04,  4.81305433e-05,  1.55211031e-03,
+              -3.89112538e-04, -1.21736361e-04, -1.05082065e-04,
+               1.35615395e-04, -4.70238097e-04,  5.06596552e-05,
+               5.96614438e-04,  8.60058644e-04,  1.57593074e-03,
+              -1.35515491e-03,  7.79002556e-04,  8.51082150e-04,
+               1.22845857e-04,  6.43223408e-04,  6.08801842e-04,
+              -3.02861667e-06,  1.18552020e-03], dtype=float32),
+ DeviceArray([0.24033982], dtype=float32))</code></pre>
+</div>
+</div>
+<div id="cell-23" class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>lime <span class="op">=</span> LimeBase(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    func<span class="op">=</span>net.<span class="bu">apply</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    additional_func_args<span class="op">=</span>{<span class="st">"params"</span>: params},</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>lime.attribute(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(DeviceArray([[ 0.00221086,  0.00581249,  0.00237516, ...,  0.0043735 ,
+                0.00298327,  0.00597063],
+              [ 0.00241475,  0.00598198,  0.00254859, ...,  0.00455689,
+                0.00296534,  0.00607178],
+              [-0.00225598, -0.00591312, -0.00256158, ..., -0.00448116,
+               -0.00301292, -0.00606422],
+              ...,
+              [ 0.00223549,  0.00583388,  0.00241553, ...,  0.00438501,
+                0.00298516,  0.00600691],
+              [ 0.00221306,  0.00573398,  0.00225197, ...,  0.00415604,
+                0.00285654,  0.00581799],
+              [ 0.00242912,  0.00596596,  0.00257836, ...,  0.00450296,
+                0.0030849 ,  0.00620169]], dtype=float32),
+ DeviceArray([[0.24730496],
+              [0.24756414],
+              [0.23204625],
+              [0.24731565],
+              [0.24734785],
+              [0.24736024],
+              [0.24726894],
+              [0.24740964],
+              [0.24748607],
+              [0.2472707 ],
+              [0.24726589],
+              [0.23272656],
+              [0.2474309 ],
+              [0.24768972],
+              [0.24720442],
+              [0.23258576],
+              [0.24747995],
+              [0.23265731],
+              [0.23216027],
+              [0.23245938],
+              [0.23232539],
+              [0.23272593],
+              [0.24734417],
+              [0.232578  ],
+              [0.2313688 ],
+              [0.232699  ],
+              [0.23166694],
+              [0.2476369 ],
+              [0.24740493],
+              [0.23260298],
+              [0.2476171 ],
+              [0.23259275],
+              [0.2327499 ],
+              [0.24747556],
+              [0.23274088],
+              [0.23278277],
+              [0.23274417],
+              [0.23259158],
+              [0.23276031],
+              [0.23244202],
+              [0.23248667],
+              [0.24736097],
+              [0.2475133 ],
+              [0.23159517],
+              [0.23230171],
+              [0.24782038],
+              [0.23145361],
+              [0.23132221],
+              [0.23273085],
+              [0.24778697],
+              [0.2318807 ],
+              [0.23234296],
+              [0.2473141 ],
+              [0.23186037],
+              [0.24774271],
+              [0.24740867],
+              [0.2321608 ],
+              [0.24721904],
+              [0.24765676],
+              [0.23248613],
+              [0.2325826 ],
+              [0.23253548],
+              [0.24741523],
+              [0.23102273],
+              [0.2324856 ],
+              [0.24752925],
+              [0.24744649],
+              [0.24753611],
+              [0.24741869],
+              [0.24742423],
+              [0.23231731],
+              [0.24737181],
+              [0.23265643],
+              [0.24769214],
+              [0.23244457],
+              [0.23207039],
+              [0.23221391],
+              [0.24714589],
+              [0.24750586],
+              [0.24760035],
+              [0.23261759],
+              [0.23214899],
+              [0.23229751],
+              [0.2317236 ],
+              [0.24728425],
+              [0.24737929],
+              [0.24734789],
+              [0.24735087],
+              [0.24734165],
+              [0.23252094],
+              [0.24735183],
+              [0.23268992],
+              [0.2472564 ],
+              [0.23250158],
+              [0.24733323],
+              [0.23173681],
+              [0.24738492],
+              [0.24749885],
+              [0.23246227],
+              [0.2326699 ],
+              [0.24735057],
+              [0.24739408],
+              [0.23209122],
+              [0.24731648],
+              [0.23272413],
+              [0.232523  ],
+              [0.24749972],
+              [0.24729979],
+              [0.23263235],
+              [0.23183963],
+              [0.23184806],
+              [0.23263596],
+              [0.24731863],
+              [0.23263787],
+              [0.24730252],
+              [0.2472181 ],
+              [0.24739836],
+              [0.24762246],
+              [0.24867377],
+              [0.24735266],
+              [0.23101482],
+              [0.24794899],
+              [0.23271923],
+              [0.23227747],
+              [0.23191595],
+              [0.24739477],
+              [0.23250002],
+              [0.24734001],
+              [0.24730746],
+              [0.24746673],
+              [0.24722606],
+              [0.24733111],
+              [0.23255974],
+              [0.24728492],
+              [0.23227465],
+              [0.24736558],
+              [0.24749716],
+              [0.23218371],
+              [0.23240303],
+              [0.24745671],
+              [0.23237772],
+              [0.24727368],
+              [0.23259522],
+              [0.23260601],
+              [0.23210865],
+              [0.23270965],
+              [0.23201807],
+              [0.2472552 ],
+              [0.2324636 ],
+              [0.24743754],
+              [0.23217565],
+              [0.24725908],
+              [0.23177943],
+              [0.23214754],
+              [0.23217827],
+              [0.24719004],
+              [0.23194984],
+              [0.24750523],
+              [0.23241459],
+              [0.23250034],
+              [0.2324958 ],
+              [0.24732801],
+              [0.24729869],
+              [0.23244049],
+              [0.24737254],
+              [0.23204154],
+              [0.23235755],
+              [0.24782768],
+              [0.24725914],
+              [0.24750242],
+              [0.23217706],
+              [0.23235546],
+              [0.24741676],
+              [0.23215216],
+              [0.24742627],
+              [0.24739274],
+              [0.23202284],
+              [0.23235677],
+              [0.23258376],
+              [0.23233262],
+              [0.2325433 ],
+              [0.2473211 ],
+              [0.23198971],
+              [0.24748974],
+              [0.24733643],
+              [0.23230669],
+              [0.24724506],
+              [0.23218584],
+              [0.24735439],
+              [0.24746102],
+              [0.24732526],
+              [0.2325736 ],
+              [0.23248109],
+              [0.24725024],
+              [0.24732903],
+              [0.24728669],
+              [0.24792492],
+              [0.24741988],
+              [0.23169258],
+              [0.23255627],
+              [0.24753469],
+              [0.24741082],
+              [0.23244117],
+              [0.23260221],
+              [0.2316141 ],
+              [0.24735719],
+              [0.24743626],
+              [0.24751961],
+              [0.23250861],
+              [0.23179816],
+              [0.24762237],
+              [0.24788071],
+              [0.2325231 ],
+              [0.2324555 ],
+              [0.2325428 ],
+              [0.23237003],
+              [0.2323332 ],
+              [0.24787727],
+              [0.23265064],
+              [0.24732669],
+              [0.24749607],
+              [0.24766587],
+              [0.2480405 ],
+              [0.23218127],
+              [0.24730903],
+              [0.23179471],
+              [0.2473682 ],
+              [0.24743044],
+              [0.247412  ],
+              [0.23198949],
+              [0.2474296 ],
+              [0.23019618],
+              [0.24736585],
+              [0.24736209],
+              [0.24728309],
+              [0.24746317],
+              [0.23231001],
+              [0.23207894],
+              [0.24735352],
+              [0.2322949 ],
+              [0.24727553],
+              [0.24729888],
+              [0.23229258],
+              [0.23158833],
+              [0.24727146],
+              [0.23261805],
+              [0.24736366],
+              [0.23235823],
+              [0.24729802],
+              [0.24752894],
+              [0.24734056],
+              [0.23284838],
+              [0.24715085],
+              [0.2323496 ],
+              [0.24730666],
+              [0.2320316 ],
+              [0.23239292],
+              [0.24736963],
+              [0.24747422],
+              [0.24727249],
+              [0.23237279],
+              [0.24724723],
+              [0.24729113],
+              [0.24737135],
+              [0.24733087],
+              [0.24724013],
+              [0.24737415],
+              [0.2327153 ],
+              [0.24791467],
+              [0.24732663],
+              [0.24748352],
+              [0.23251979],
+              [0.24714312],
+              [0.24755022],
+              [0.2473973 ],
+              [0.23273005],
+              [0.23246035],
+              [0.24732141],
+              [0.23213631],
+              [0.24721566],
+              [0.23201378],
+              [0.23221391],
+              [0.24740039],
+              [0.23237988],
+              [0.23115295],
+              [0.23251712],
+              [0.23238027],
+              [0.23267289],
+              [0.24774548],
+              [0.23251162],
+              [0.23228587],
+              [0.23244764],
+              [0.24746987],
+              [0.23209953],
+              [0.24765822],
+              [0.23273446],
+              [0.23225085],
+              [0.24744767],
+              [0.23257345],
+              [0.24717891],
+              [0.23226202],
+              [0.23245876],
+              [0.24770094],
+              [0.23234405],
+              [0.24729179],
+              [0.23253849],
+              [0.23176861],
+              [0.23238832],
+              [0.24772736],
+              [0.23276523],
+              [0.24727891],
+              [0.24722643],
+              [0.23272316],
+              [0.24743803],
+              [0.2473214 ],
+              [0.2324927 ],
+              [0.24720925],
+              [0.2319577 ],
+              [0.24736662],
+              [0.24720564],
+              [0.2473594 ],
+              [0.24746218],
+              [0.2473249 ],
+              [0.23269431],
+              [0.23267029],
+              [0.24746528],
+              [0.24735796],
+              [0.23275968],
+              [0.24729164],
+              [0.24727115],
+              [0.24726492],
+              [0.23244949],
+              [0.23239763],
+              [0.23260587],
+              [0.2317266 ],
+              [0.24721311],
+              [0.24791732],
+              [0.23277605],
+              [0.24746867],
+              [0.2326223 ],
+              [0.24716686],
+              [0.23254141],
+              [0.24743882],
+              [0.24725032],
+              [0.23271337],
+              [0.23271807],
+              [0.24727352],
+              [0.23150992],
+              [0.24748631],
+              [0.24734168],
+              [0.24780883],
+              [0.24741678],
+              [0.24733034],
+              [0.23234318],
+              [0.24731077],
+              [0.2472419 ],
+              [0.2473333 ],
+              [0.23262657],
+              [0.24725671],
+              [0.24735816],
+              [0.23228347],
+              [0.2473127 ],
+              [0.24725196],
+              [0.23249117],
+              [0.23216985],
+              [0.24734968],
+              [0.23251817],
+              [0.23218517],
+              [0.23229903],
+              [0.24736002],
+              [0.23227802],
+              [0.24734715],
+              [0.24728952],
+              [0.23249188],
+              [0.23238972],
+              [0.24732132],
+              [0.23275092],
+              [0.23262392],
+              [0.23213783],
+              [0.24741286],
+              [0.24725187],
+              [0.23273003],
+              [0.23257877],
+              [0.24740161],
+              [0.24715275],
+              [0.24721095],
+              [0.23270902],
+              [0.24722742],
+              [0.2319201 ],
+              [0.23252024],
+              [0.23254202],
+              [0.23239242],
+              [0.23167515],
+              [0.24744089],
+              [0.23231809],
+              [0.23276606],
+              [0.23184034],
+              [0.23192035],
+              [0.23264523],
+              [0.24742319],
+              [0.23254554],
+              [0.23217438],
+              [0.24735396],
+              [0.23255692],
+              [0.23227966],
+              [0.232184  ],
+              [0.24756455],
+              [0.23222198],
+              [0.24758385],
+              [0.24754198],
+              [0.24729684],
+              [0.23244324],
+              [0.24749175],
+              [0.23269522],
+              [0.23192582],
+              [0.2326539 ],
+              [0.23266825],
+              [0.24736997],
+              [0.24730414],
+              [0.2324066 ],
+              [0.24725583],
+              [0.24741372],
+              [0.24747895],
+              [0.23201811],
+              [0.24729444],
+              [0.247381  ],
+              [0.2326003 ],
+              [0.23236334],
+              [0.24736139],
+              [0.2321806 ],
+              [0.23245579],
+              [0.23235963],
+              [0.23238862],
+              [0.2472786 ],
+              [0.23169187],
+              [0.24740751],
+              [0.23263946],
+              [0.23267938],
+              [0.24756868],
+              [0.23228672],
+              [0.24769364],
+              [0.24736963],
+              [0.23052931],
+              [0.23218985],
+              [0.23187762],
+              [0.23254694],
+              [0.23233788],
+              [0.2312679 ],
+              [0.23229599],
+              [0.23235682],
+              [0.23257495],
+              [0.23236491],
+              [0.24776962],
+              [0.24718513],
+              [0.24725026],
+              [0.23261815],
+              [0.2471972 ],
+              [0.24723697],
+              [0.2323229 ],
+              [0.23140587],
+              [0.2477279 ],
+              [0.23209357],
+              [0.24751735],
+              [0.24730821],
+              [0.24750674],
+              [0.23272803],
+              [0.24727444],
+              [0.24727756],
+              [0.24726333],
+              [0.24735498],
+              [0.23130915],
+              [0.24735644],
+              [0.2326549 ],
+              [0.23219867],
+              [0.23273338],
+              [0.23268846],
+              [0.24724345],
+              [0.2473797 ],
+              [0.24738654],
+              [0.2314789 ],
+              [0.24723507],
+              [0.23221129],
+              [0.24730465],
+              [0.23243599],
+              [0.232267  ],
+              [0.23234174],
+              [0.24730346],
+              [0.2472916 ],
+              [0.24730274],
+              [0.2325149 ],
+              [0.24734567],
+              [0.24727803],
+              [0.24726497],
+              [0.23281087],
+              [0.24736117],
+              [0.23239669],
+              [0.23156339],
+              [0.2475236 ],
+              [0.24708891],
+              [0.2476187 ]], dtype=float32))</code></pre>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/birkhoffg\.github\.io\/explainax");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/birkhoffg/explainax/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
