@@ -7,14 +7,14 @@ from .imports import *
 # %% auto 0
 __all__ = ['l2_loss', 'calculate_loss', 'sgd_train_linear_model', 'BaseEstimator', 'LinearModel', 'Lasso', 'Ridge']
 
-# %% ../nbs/api/linear_model.ipynb 4
+# %% ../nbs/api/linear_model.ipynb 5
 def l2_loss(x1, x2, weights=None):
     if weights is None:
-        return optax.l2_loss(x1, x2)
+        return optax.l2_loss(x1, x2).mean()
     else:
-        return jnp.sum((weights / optax.safe_norm(weights, ord=1)) * jnp.square(x1 - x2)) / 2.0
+        return jnp.sum((weights / optax.safe_norm(weights, 0., ord=1)) * jnp.square(x1 - x2)) / 2.0
 
-# %% ../nbs/api/linear_model.ipynb 5
+# %% ../nbs/api/linear_model.ipynb 6
 def _init_train_fn(
     X: jnp.ndarray, # Input data
     y: jnp.ndarray, # Target data
@@ -45,7 +45,7 @@ def calculate_loss(
     y_pred = jnp.dot(X, w) + b
     loss = loss_fn(y, y_pred, weights)
     if reg_term is not None:
-        reg = jnp.linalg.norm(w, ord=reg_term)
+        reg = optax.safe_norm(w, 0., ord=reg_term)
         loss += jnp.mean(reg) * alpha
     return loss
 
@@ -86,7 +86,7 @@ def sgd_train_linear_model(
     return params["w"], params["b"]
 
 
-# %% ../nbs/api/linear_model.ipynb 6
+# %% ../nbs/api/linear_model.ipynb 7
 class BaseEstimator:
     def __init__(self):
         ...
@@ -94,7 +94,7 @@ class BaseEstimator:
     def fit(self, X, y):
         ...
 
-# %% ../nbs/api/linear_model.ipynb 7
+# %% ../nbs/api/linear_model.ipynb 8
 class LinearModel(BaseEstimator):
     def __init__(
         self,
@@ -116,7 +116,10 @@ class LinearModel(BaseEstimator):
             X, y, weights, fit_bias=self.fit_bias, **kwargs)
         return self
 
-# %% ../nbs/api/linear_model.ipynb 8
+    def predict(self, X: jnp.ndarray) -> jnp.ndarray:
+        return jnp.dot(X, self.coef_) + self.intercept_
+
+# %% ../nbs/api/linear_model.ipynb 9
 class Lasso(LinearModel):
     def __init__(self, alpha: float = 1.0, **kwargs):
         super().__init__(**kwargs)
@@ -125,7 +128,7 @@ class Lasso(LinearModel):
     def fit(self, X: jnp.ndarray, y: jnp.ndarray, weights: jnp.ndarray = None, **kwargs) -> LinearModel:
         return super().fit(X, y, weights, reg_term=1, alpha=self.alpha, **kwargs)
 
-# %% ../nbs/api/linear_model.ipynb 9
+# %% ../nbs/api/linear_model.ipynb 10
 class Ridge(LinearModel):
     def __init__(self, alpha: float = 1.0, **kwargs):
         super().__init__(**kwargs)
