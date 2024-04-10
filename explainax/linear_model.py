@@ -10,9 +10,9 @@ __all__ = ['l2_loss', 'calculate_loss', 'sgd_train_linear_model', 'BaseEstimator
 # %% ../nbs/api/linear_model.ipynb 4
 def l2_loss(x1, x2, weights=None):
     if weights is None:
-        return jnp.mean(jnp.square(x1 - x2)) / 2.0
+        return optax.l2_loss(x1, x2)
     else:
-        return jnp.sum((weights / jnp.linalg.norm(weights, ord=1)) * jnp.square(x1 - x2)) / 2.0
+        return jnp.sum((weights / optax.safe_norm(weights, ord=1)) * jnp.square(x1 - x2)) / 2.0
 
 # %% ../nbs/api/linear_model.ipynb 5
 def _init_train_fn(

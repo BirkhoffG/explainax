@@ -8,7 +8,7 @@ from ..imports import *
 from .base import *
 from ..linear_model import Lasso, Ridge, LinearModel
 
-# %% ../../nbs/api/attr.lime.ipynb 5
+# %% ../../nbs/api/attr.lime.ipynb 4
 @partial(jit, static_argnums=(2))
 def pairwise_distances(
     x: Array, # [n, k]
@@ -35,7 +35,7 @@ def pairwise_distances(
     
     return dists_fn(x, y)
 
-# %% ../../nbs/api/attr.lime.ipynb 10
+# %% ../../nbs/api/attr.lime.ipynb 9
 def bernoulli_perturb_func(x: Array, prng_key: jrand.PRNGKey, **kwargs) -> Array:
     """Bernoulli perturbation function for LIME"""
     probs = jnp.ones(x.shape) * 0.5
@@ -45,7 +45,7 @@ def gaussian_perturb_func(x: Array, prng_key: jrand.PRNGKey, **kwargs) -> Array:
     """Gaussian perturbation function for LIME"""
     return jrand.normal(prng_key, shape=x.shape) #+ x
 
-# %% ../../nbs/api/attr.lime.ipynb 11
+# %% ../../nbs/api/attr.lime.ipynb 10
 def _perturb_data(
     x: Array, # [1, k]
     n_samples: int,
@@ -59,13 +59,13 @@ def _perturb_data(
     ) 
     return jnp.concatenate([x, perturbed_data], axis=0)
 
-# %% ../../nbs/api/attr.lime.ipynb 13
+# %% ../../nbs/api/attr.lime.ipynb 12
 @jit
 def exp_kernel_func(dists: Array, kernel_width: float) -> Array:
     """Exponential kernel function for LIME"""
     return jnp.sqrt(jnp.exp(-(dists ** 2) / kernel_width ** 2) + 1e-8)
 
-# %% ../../nbs/api/attr.lime.ipynb 15
+# %% ../../nbs/api/attr.lime.ipynb 14
 def _lime_attribute_single_instance(
     inputs: Array, # [k]
     n_samples: int,
@@ -99,7 +99,7 @@ def _lime_attribute_single_instance(
     model_regressor.fit(data, yss, weights=weights)
     return (model_regressor.coef_, model_regressor.intercept_)
 
-# %% ../../nbs/api/attr.lime.ipynb 16
+# %% ../../nbs/api/attr.lime.ipynb 15
 class LimeBase(Attribution):
     def __init__(
         self,
